@@ -8,8 +8,10 @@ import { navigate } from "../router.js";
 import { $, esc } from "../utils.js";
 import { khungDem, truongDem, nutDem, cho, datChuNut, xoaLoiDem, hienLoiDem, baoLoi, demNguoc, mmss, ganDem, ganCaptchaDem, safeNext, nextQs } from "./auth-ui.js";
 
-const FX_VAO = { type: "canh", huong: "len" };
-export const fxCho = (to) => (/^\/(dishes|khach|admin)(\/|$)/.test(to) ? FX_VAO : null);
+// đăng nhập / xác thực MFA xong: nước sông dâng lên phủ màn hình rồi rút xuống để lộ trang đích
+// (cùng hiệu ứng với đăng xuất bằng thuyền, xem effects.js)
+const FX_VAO = { type: "nuoc" };
+export const fxCho = (to) => (/^\/(dishes|khach|admin)?(\/|$)/.test(to) ? FX_VAO : null);
 
 export async function load(ctx) {
   const next = safeNext(ctx.query);

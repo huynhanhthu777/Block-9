@@ -95,7 +95,7 @@ export function thanhTren({ tabs = [], themHref, themLabel, role } = {}) {
   <div class="tabs">${tabs.map((t) => `<a class="nut tab${t.on ? " on" : ""}" href="${esc(t.href)}">${esc(t.label)}</a>`).join("")}</div>
   <div class="tabs">
     ${themHref ? `<a class="nut" href="${esc(themHref)}">${esc(themLabel)}</a>` : ""}
-    ${!role ? `<a class="nut nut-phu" href="/login">Đăng nhập</a>` : `<a class="nut nut-phu" href="/account/security">Bảo mật</a><button type="button" class="nut nut-phu" data-dang-xuat>Đăng xuất</button>`}
+    ${!role ? `<a class="nut nut-phu" href="/login">Đăng nhập</a>` : `<a class="nut nut-phu" href="/account/security">Bảo mật</a>`}
   </div>
 </div>`;
 }

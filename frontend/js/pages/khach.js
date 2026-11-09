@@ -55,7 +55,7 @@ export async function load() {
     <a class="nut nut-phu" href="/">Ra phố</a>
     <span class="goc-phai">
       <a class="nut nut-phu" href="${esc(quayLai("/dishes", { giu: true }))}">Danh sách &amp; tìm món</a>
-      ${me ? `<a class="nut nut-phu" href="/account/security">Bảo mật</a><button type="button" class="nut nut-phu" data-dang-xuat>Đăng xuất</button>` : `<a class="nut nut-phu" href="/login">Đăng nhập</a>`}
+      ${me ? `<a class="nut nut-phu" href="/account/security">Bảo mật</a>` : `<a class="nut nut-phu" href="/login">Đăng nhập</a>`}
       <button class="nut" id="nut-hang">Hàng chờ (0)</button>
     </span>
   </div>

@@ -36,7 +36,7 @@ Ký hiệu trong bảng lịch sử: ✅ là trạng thái được báo cáo �
 | Dọn / xóa `X1–X5`, `X7`, `X8` | ✅ (xem bên dưới) |
 | Kiểm thử `T1–T13` | ✅ tự động (backend) · `T14` ⬜ (cần trang home đầy đủ) |
 | Frontend `F1–F7`, `X6` | **✅ xong** (mục 12) |
-| Frontend `F9`, `F12` | ✅ (`F12`: thanh trên có **Bảo mật** + Đăng xuất, mục 12.9) |
+| Frontend `F9`, `F12` | ✅ (`F12`: thanh trên có liên kết **Bảo mật**; đăng xuất chỉ bằng con thuyền, mục 12.9) |
 | Frontend `F8`, `F10–F11`, `F14` | Có mã triển khai; chưa nghiệm thu đầy đủ trên Supabase (mục 9, 14) |
 | Frontend `F13` | Có chức năng trang khách; cần kiểm thử hồi quy tìm kiếm / phân trang / ba chế độ (mục 9, 14) |
 | Trang home `H1` | ✅ |
@@ -366,11 +366,11 @@ npm run test:auth && npm run test:register && npm run test:mfa && npm run test:a
 | F9 | Route `/account/security` và route xác thực | **Có khai báo trong `frontend/js/main.js`**; cần kiểm tra route guard khi chạy thật |
 | F10 | Khu quản trị theo role: viewer/editor/admin và ABAC trong UI | **Có `frontend/js/quyen.js` và các lời gọi `duocThem`, `duocSua`, `duocXoa` trong `listing.js`**; cần e2e xác nhận ẩn nút, khóa trường và server trả 403 đúng |
 | F11 | Ô `status` (draft / published) cho món | **Có mã xử lý**; cần test tạo/sửa, giới hạn editor và dữ liệu lưu DB |
-| F12 | Liên kết **Bảo mật** ở thanh trên khi đã đăng nhập (nút Đăng xuất đã có) | ✅ `utils.js` (`thanhTren`) và thanh trên của `khach.js` |
+| F12 | Liên kết **Bảo mật** ở thanh trên khi đã đăng nhập (không còn nút Đăng xuất ở thanh trên; chỉ đăng xuất bằng thuyền) | ✅ `utils.js` (`thanhTren`) và thanh trên của `khach.js` |
 | F13 | Chạy lại trang khách không token: tìm kiếm, phân trang, ba chế độ hiển thị, chi tiết món | Đã kiểm trên trình duyệt, không token: `/dishes`, `/khach` (có nút Đăng nhập, hàng chờ) và `/dishes/1` mở được, `/dishes` không gửi `Authorization`. **Chưa kiểm lại** tìm kiếm / phân trang / ba chế độ hiển thị (dây kéo) sau khi đổi frontend |
 | F14 | Escape dữ liệu người dùng khi render HTML | **Đã thấy `esc()` trong các trang liên quan**; chưa có bằng chứng rà soát toàn bộ sink DOM và test XSS |
 | H2 | Thuyền = đăng xuất (lắc, tiếng nước, hộp xác nhận) | ✅ `pages/home.js` |
-| H3 | Hiệu ứng nước sông tràn từ đáy lên (`fx: { type: "nuoc" }`): khi đăng xuất, khi chưa đăng nhập mà bấm nhà hàng, và khi bấm **Trang chủ** (`.dn-ve`) từ cảnh đêm của `/login`, `/register`, `/forgot-password`, `/reset-password`, `/mfa` (`chonFx` chọn nước khi link nằm trong `.dn`; ra phố từ trang khác vẫn là cành cây). Đợi animation `nuoc-len` thật chạy xong (tối đa 2 giây) rồi mới đổi màn hình; trong lúc nước dâng, body có lớp `dang-nuoc` để tạm dừng animation của cảnh đêm; `prefers-reduced-motion` thì bỏ hiệu ứng | ✅ `effects.js`, `style.css` (`.nuoc-tran`, `html[data-nuoc]`, `.dang-nuoc`) |
+| H3 | Hiệu ứng nước sông tràn từ đáy lên (`fx: { type: "nuoc" }`): khi đăng xuất, khi đăng nhập / xác thực MFA xong (`fxCho` trong `pages/login.js`), khi chưa đăng nhập mà bấm nhà hàng, và khi bấm **Trang chủ** (`.dn-ve`) từ cảnh đêm của `/login`, `/register`, `/forgot-password`, `/reset-password`, `/mfa` (`chonFx` chọn nước khi link nằm trong `.dn`; ra phố từ trang khác vẫn là cành cây). Đợi animation `nuoc-len` thật chạy xong (tối đa 2 giây) rồi mới đổi màn hình; trong lúc nước dâng, body có lớp `dang-nuoc` để tạm dừng animation của cảnh đêm; `prefers-reduced-motion` thì bỏ hiệu ứng | ✅ `effects.js`, `style.css` (`.nuoc-tran`, `html[data-nuoc]`, `.dang-nuoc`) |
 | H4 | Hộp chọn vai: hộp "Vai trò không hợp lệ" đúng kiểu Block 8 | ✅ |
 | H5 | Cô gái áo dài + Vé hành khách (tên + avatar) | ✅ `pages/ve-hanh-khach.js` |
 | H7 | Chỉ còn `data-dn` / `data-tk` kiểu EJS | ✅ trang phố dùng `getMe()` |
@@ -383,7 +383,7 @@ npm run test:auth && npm run test:register && npm run test:mfa && npm run test:a
 ### 12.9 Trang home hoàn chỉnh (H1–H11) và thanh trên (F12)
 
 - Thuyền / cô gái chỉ có khi `getMe()` trả về user; chưa đăng nhập thì thuyền đứng yên, không có cô gái, bấm nhà hàng → nước tràn → `/login`. Từ `/login` bấm **Trang chủ** thì nước tràn quay về `/` (kiểm bằng e2e nhóm A2).
-- Đăng xuất (thuyền hoặc nút ở thanh trên) gọi `api.auth.logout()`, xóa token rồi sang `/login` bằng nước tràn. Token **không** bị xóa khi chỉ ra phố (H1).
+- Đăng xuất (chỉ bằng con thuyền ở trang chủ; thanh trên của khách và đầu bếp không có nút Đăng xuất) gọi `api.auth.logout()`, xóa token rồi sang `/login` bằng nước tràn. Token **không** bị xóa khi chỉ ra phố (H1).
 - Vé hành khách: ảnh được cắt vuông 512px ở trình duyệt rồi gửi `multipart` (`avatar`) kèm Bearer; server kiểm tra lại nội dung ảnh. Block 9 chỉ lưu ảnh 512px (không có thumbnail 240px như Block 8).
 - Tệp mới / sửa: `pages/home.js`, `pages/ve-hanh-khach.js` (mới), `effects.js`, `api.js`, `utils.js`, `pages/khach.js`, `main.js`, `am-thanh.js`, `css/style.css` (+ `style.min.css`), `img/pho/{co-gai,bang-dang-nhap,bang-dang-xuat}.webp`, `audio/co-gai-cuoi-1..4.mp3`.
 - `bang-dang-nhap.webp` / `bang-dang-xuat.webp` đã copy theo kế hoạch H9 nhưng code Block 8 không dùng tới nên Block 9 cũng chưa dùng.
@@ -518,7 +518,7 @@ npm run db:migrate && npm run db:seed && npm run test:search
 | F6 | Quên mật khẩu (luôn báo chung, không lộ email nào có tài khoản) và đặt lại mật khẩu từ `/reset-password?token=` (kiểm link trước khi hiện form, `Referrer-Policy: no-referrer`) | ✅ | `pages/forgot.js`, `pages/reset.js` |
 | F7 | Trang nhập mã MFA: mã 6 số hoặc mã khôi phục; challenge hết hạn → về đăng nhập; sai quá 5 lần → đếm ngược; thay token và báo số mã khôi phục còn lại | ✅ | `pages/mfa-verify.js` |
 | F9 (một phần) | Route `/register`, `/forgot-password`, `/reset-password`, `/mfa`; khu `/admin/*` đổi từ `{role:"admin"}` sang `{auth:true}` (kiểm bằng `/auth/me`, không còn so với cookie) | 🟡 | `main.js`, `router.js` |
-| F12 (một phần) | Nút **Đăng xuất** ở thanh trên khi đã đăng nhập (ủy quyền sự kiện `[data-dang-xuat]`), và trên `/khach`; chưa có liên kết Bảo mật | 🟡 | `utils.js`, `main.js`, `pages/khach.js` |
+| F12 (một phần) | Thanh trên không còn nút Đăng xuất (đã bỏ, chỉ đăng xuất bằng thuyền) | 🟡 | `utils.js`, `main.js`, `pages/khach.js` |
 | H1 | Ra phố **không còn** gọi `api.logout()` | ✅ | `pages/home.js` |
 
 Giao diện các trang vào / ra tài khoản là **cảnh ban đêm** (`.dn`, giống Block 8): thẻ ở giữa, tab Đăng nhập / Đăng ký, nút **Trang chủ** ở góc, ô nhập dạng `truongDem` (id `f-<tên trường>`, vd. `#f-email`, `#f-recoveryCode`), mã 6 số là 6 ô `.dn-otp`, CAPTCHA là `#captcha .dn-cap`.
@@ -640,7 +640,7 @@ Nguồn đối chiếu: **Kế hoạch chuyển Block 7 (CSR) sang JWT**, mục 
 | F1–F7 | Có các trang xác thực và `auth-ui-check.py` | Chạy e2e thật với backend/DB; kiểm tra OTP, reset, CAPTCHA, MFA |
 | F8–F9 | Có `pages/security.js` và route `/account/security` | E2E bật/tắt MFA, recovery, thay token, route guard |
 | F10–F11 | Có `quyen.js`, các kiểm tra quyền ở `listing.js`, mã trạng thái món | E2E 3 role, nút ẩn/hiện, món `draft/published`, thao tác bị chặn ở API |
-| F12 | Có nút Đăng xuất / Bảo mật trong giao diện | Kiểm tra liên kết, điều hướng và logout |
+| F12 | Có liên kết Bảo mật trong giao diện; đăng xuất bằng thuyền | Kiểm tra liên kết, điều hướng và logout |
 | F13 | Có các trang danh sách, tìm kiếm, phân trang và chi tiết | Chạy lại trang khách không token, đủ ba chế độ hiển thị |
 | F14 | Có sử dụng `esc()` ở nhiều chỗ render | Rà toàn bộ `innerHTML` và thử payload XSS; chưa kết luận an toàn toàn diện |
 | H1–H11 | Có code home, nước tràn, thuyền, vé, avatar, CSS/ảnh/âm thanh | So sánh ảnh chụp Block 8 và Block 9 khi chạy; test avatar với **Supabase Storage thật** |

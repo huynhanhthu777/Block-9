@@ -13,8 +13,6 @@ import * as reset from "./pages/reset.js";
 import * as mfaVerify from "./pages/mfa-verify.js";
 import * as security from "./pages/security.js";
 import { RES } from "./resources.js";
-import { dangXuat } from "./state.js";
-import { navigate } from "./router.js";
 
 // ----- khu vực khách -----
 addRoute("/", home.load);
@@ -40,11 +38,6 @@ Object.keys(RES).forEach((key) => {
   addRoute(`/admin/${key}/:id/delete`, (ctx) => adminDelete.load(ctx, key), { auth: true });
 });
 
-// nút "Đăng xuất" ở thanh trên (thanhTren trong utils.js); ủy quyền sự kiện vì thanh trên được vẽ lại mỗi màn hình
-document.addEventListener("click", async (e) => {
-  if (!e.target.closest || !e.target.closest("[data-dang-xuat]")) return;
-  await dangXuat();
-  navigate("/login", { fx: { type: "nuoc" }, flash: "Đã đăng xuất." }); // nước tràn như đăng xuất bằng thuyền
-});
+// Đăng xuất chỉ có một lối duy nhất: bấm con thuyền ở trang chủ (pages/home.js).
 
 start(document.getElementById("app"));

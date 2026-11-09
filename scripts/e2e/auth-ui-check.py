@@ -54,10 +54,14 @@ with sync_playwright() as pw:
         pg.evaluate("document.querySelectorAll('.dn-otp input').forEach(i => i.value = '')")
         pg.locator(".dn-otp input").first.focus(); pg.keyboard.type(code)
     def dang_xuat():
-        # bấm Đăng xuất rồi CHỜ sang /login (nước tràn 0,62 giây + lời gọi logout > 1 giây): chờ cố định dễ trượt, và goto sớm thì token chưa kịp xóa
-        try: pg.wait_for_selector("[data-dang-xuat]", timeout=2000)
+        # đăng xuất chỉ còn một lối: về trang chủ, bấm thuyền (#nut-thuyen), xác nhận "Đăng xuất" trong hộp hỏi,
+        # rồi CHỜ sang /login (nước tràn 0,62 giây + lời gọi logout > 1 giây): chờ cố định dễ trượt, và goto sớm thì token chưa kịp xóa
+        pg.goto(BASE + "/")
+        try: pg.wait_for_selector("#nut-thuyen", timeout=8000)
         except Exception: return
-        pg.click("[data-dang-xuat]")
+        pg.click("#nut-thuyen")
+        pg.wait_for_selector('[data-a="dx"]', timeout=4000)
+        pg.click('[data-a="dx"]')
         try: pg.wait_for_url("**/login*", timeout=8000)
         except Exception: pass
         pg.wait_for_timeout(300)
@@ -112,7 +116,7 @@ with sync_playwright() as pw:
     check("request /api/chefs có Authorization: Bearer", bool(sent) and all(a == "Bearer " + t for a in sent))
     goto("/login")
     check("đã đăng nhập mà mở /login -> chuyển đi, không hiện form", "/login" not in pg.url, pg.url)
-    pg.goto(BASE + "/dishes"); pg.wait_for_selector("[data-dang-xuat]")
+    pg.goto(BASE + "/dishes"); pg.wait_for_selector("#app > *")
     dang_xuat()
     check("Đăng xuất -> /login, token bị xóa", "/login" in pg.url and token() is None)
 
@@ -220,7 +224,7 @@ with sync_playwright() as pw:
     pg.click("#nut"); pg.wait_for_timeout(900)
     check("bị khóa: nút đếm ngược, bị vô hiệu", pg.locator("#nut").is_disabled() and "thử lại sau" in pg.locator("#nut").inner_text().lower())
     goto("/login?next=//evil.com"); pg.fill("#f-email", "admin@example.com"); pg.fill("#f-password", PW); pg.click("#nut"); pg.wait_for_timeout(1500)
-    pg.wait_for_selector("[data-dang-xuat]", timeout=8000)   # chờ trang sau đăng nhập dựng xong (bcrypt + chuyển trang có thể > 1,5 giây)
+    pg.wait_for_function("!location.pathname.startsWith('/login')", timeout=8000)   # chờ trang sau đăng nhập dựng xong (bcrypt + chuyển trang có thể > 1,5 giây)
     check("next=//evil.com bị bỏ qua, ở lại cùng origin", pg.url.startswith(BASE), pg.url)
     dang_xuat()
     goto("/login?next=/admin/ingredients"); pg.fill("#f-email", "admin@example.com"); pg.fill("#f-password", PW)
