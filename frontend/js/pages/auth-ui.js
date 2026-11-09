@@ -383,7 +383,8 @@ const CAP_SVG = `<svg class="dn-cap-hinh" viewBox="0 0 24 24" width="26" height=
 export function ganCaptchaDem(box, signal, onOk) {
   if (!RECAPTCHA_SITE_KEY) {
     box.innerHTML = `<div class="dn-cap" role="checkbox" aria-checked="false" aria-labelledby="cap-chu" tabindex="0">
-      <span class="dn-cap-o" aria-hidden="true"></span><span class="dn-cap-chu" id="cap-chu">Tôi không phải là người máy</span>${CAP_SVG}</div>`;
+      <span class="dn-cap-o" aria-hidden="true"></span><span class="dn-cap-chu" id="cap-chu">Tôi không phải là người máy <small style="opacity:.6;font-weight:400">(chế độ thử, chưa có reCAPTCHA thật)</small></span>${CAP_SVG}</div>`;
+    console.warn("[CAPTCHA] Chưa đặt RECAPTCHA_SITE_KEY: đang dùng ô tick GIẢ LẬP, không chặn được bot.");
     const el = $(".dn-cap", box);
     let ok = false;
     const bam = () => {
@@ -409,14 +410,25 @@ export function ganCaptchaDem(box, signal, onOk) {
       },
     };
   }
+  // ---- reCAPTCHA v2 THẬT của Google ----
   const goc = document.createElement("div");
   goc.className = "dn-rc";
   box.replaceChildren(goc);
   let id = null;
+  const baoLoi = (chu) => {
+    const cha = box.parentElement;
+    const o = cha && cha.matches('[data-field="captcha"]') ? cha.querySelector(".dn-loi") : null;
+    if (o) o.textContent = chu;
+  };
   napScript()
     .then(() => {
       if (signal?.aborted) return;
-      id = window.grecaptcha.render(goc, { sitekey: RECAPTCHA_SITE_KEY, callback: () => onOk?.() });
+      id = window.grecaptcha.render(goc, {
+        sitekey: RECAPTCHA_SITE_KEY,
+        callback: () => (baoLoi(""), onOk?.()), // người dùng giải xong -> có token
+        "expired-callback": () => baoLoi("Xác nhận đã hết hạn, hãy tick lại."), // token chỉ sống ~2 phút
+        "error-callback": () => baoLoi("reCAPTCHA gặp lỗi (mạng hoặc khóa không hợp lệ). Hãy tải lại trang."),
+      });
     })
     .catch(() => (box.textContent = "Không tải được reCAPTCHA. Kiểm tra mạng rồi tải lại trang."));
   return {

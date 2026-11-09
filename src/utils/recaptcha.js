@@ -59,4 +59,15 @@ async function verifyRecaptcha(token, ip, requestHost) {
   }
 }
 
-module.exports = { verifyRecaptcha };
+// gọi 1 lần khi server khởi động: báo sớm cấu hình reCAPTCHA / email bị thiếu hoặc lệch
+function checkRecaptchaConfig() {
+  const site = process.env.RECAPTCHA_SITE_KEY, secret = process.env.RECAPTCHA_SECRET_KEY;
+  if (site && !secret) console.warn("[CAPTCHA] Có RECAPTCHA_SITE_KEY nhưng thiếu RECAPTCHA_SECRET_KEY: server sẽ KHÔNG kiểm tra token.");
+  else if (!site && secret) console.warn("[CAPTCHA] Có RECAPTCHA_SECRET_KEY nhưng thiếu RECAPTCHA_SITE_KEY: trang web chỉ hiện ô tick giả, đăng ký sẽ bị từ chối.");
+  else if (!site && !secret) console.warn("[CAPTCHA] Chưa cấu hình reCAPTCHA: đang dùng ô tick GIẢ LẬP (chỉ dev).");
+  else console.log("[CAPTCHA] reCAPTCHA thật đã bật.");
+  if (!process.env.RESEND_API_KEY && !process.env.SMTP_HOST)
+    console.warn("[MAIL] Chưa cấu hình SMTP/Resend: OTP KHÔNG được gửi qua email" + (process.env.DEV_PRINT_MAIL === "1" ? " (đang in OTP ra console)." : ". Đặt DEV_PRINT_MAIL=1 để xem OTP trong console."));
+}
+
+module.exports = { verifyRecaptcha, checkRecaptchaConfig };

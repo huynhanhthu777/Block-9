@@ -4,6 +4,7 @@ const { runMigrations, searchReady } = require("./utils/db-setup");
 const { addMissingColumns } = require("./utils/migrate");
 const { startCleanup } = require("./utils/cleanup");
 const { assertConfigured } = require("./utils/jwt");
+const { checkRecaptchaConfig } = require("./utils/recaptcha");
 const { User, Dish } = require("./models");
 
 const PORT = process.env.PORT || 3000;
@@ -11,6 +12,7 @@ const PORT = process.env.PORT || 3000;
 (async () => {
   try {
     assertConfigured(); // thiếu/ngắn JWT_SECRET -> dừng ngay
+    checkRecaptchaConfig(); // báo sớm nếu reCAPTCHA / email chưa cấu hình
     await sequelize.authenticate();
     // Code-first: bảng được tạo từ model (chưa có thì tạo, có rồi thì giữ nguyên)
     await sequelize.sync();

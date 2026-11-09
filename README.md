@@ -5,12 +5,12 @@ Website quản lý và giới thiệu món ăn: **SPA** (`frontend/`, JavaScript
 > ## Tình trạng bàn giao
 >
 > - **Backend: hoàn thành** (B1–B26, H6 phần backend, dọn X1–X5, X7, X8). Kiểm thử tự động trên Postgres 16: `test:auth` 34 · `test:register` 30 · `test:mfa` 83 · `test:avatar` 34 · `test:search` 105, tất cả đạt (chạy lại `test:auth` và `test:search` sau khi sửa frontend: vẫn đạt).
-> - **Frontend: xong NỬA ĐẦU** — nền JWT và toàn bộ luồng vào/ra tài khoản: `F1–F7` (gắn `Authorization`, lưu token, xử lý lỗi 401/403/429, đăng nhập, đăng ký 3 bước, quên / đặt lại mật khẩu, nhập mã MFA) + phần tối thiểu để app không vỡ (route mới và route guard `F9`, nút Đăng xuất `F12` một phần, `H1`, vá nhẹ trang phố, bỏ giao diện "chọn vai" `X6`). Chi tiết ở **mục 12**. Kiểm tra bằng Chromium headless trên backend thật: `scripts/e2e/auth-ui-check.py`, **51/51 đạt**.
-> - **Frontend: CÒN LẠI (nửa sau)** — `F8` trang bảo mật tài khoản (bật / tắt MFA, mã khôi phục), `F10–F11` khu quản trị theo role + ô `status` món, `F12` phần còn lại (liên kết Bảo mật), `F13–F14` (kiểm lại trang khách đầy đủ, rà `esc()`), `H2–H5, H7–H11` (đã xong, mục 12.9). Danh sách ở mục 9.
+> - **Frontend: luồng xác thực đã triển khai** — nền JWT và toàn bộ luồng vào/ra tài khoản: `F1–F7` (gắn `Authorization`, lưu token, xử lý lỗi 401/403/429, đăng nhập, đăng ký 3 bước, quên / đặt lại mật khẩu, nhập mã MFA) + phần tối thiểu để app không vỡ (route mới và route guard `F9`, nút Đăng xuất `F12` một phần, `H1`, vá nhẹ trang phố, bỏ giao diện "chọn vai" `X6`). Chi tiết ở **mục 12**. Kiểm tra bằng Chromium headless trên backend thật: `scripts/e2e/auth-ui-check.py`, **53/53 theo lần chạy được ghi trong README gốc; chưa chạy lại trên Supabase online trong lần tích hợp này**.
+> - **Frontend: đã có mã triển khai cho F8–F14** — gồm trang bảo mật MFA, route, giao diện quyền viewer/editor/admin, ô trạng thái món, thanh trên và escape dữ liệu. **Chưa xác nhận toàn bộ hành vi bằng e2e trên Supabase**; riêng F13 cần chạy hồi quy đầy đủ. Xem mục 9 và 14.
 > - **Chưa thử với dịch vụ thật**: Supabase Storage (ảnh món và ảnh đại diện), SMTP/Resend, **reCAPTCHA thật** (giao diện mới chỉ thử với ô tick giả lập khi chưa đặt `RECAPTCHA_SITE_KEY`). Các test thay chúng bằng bản giả hoặc chế độ dev (`DEV_PRINT_MAIL`, bỏ qua reCAPTCHA khi chưa có khóa).
 > - Kế hoạch gốc: `Ke-hoach-chuyen-Block-7-CSR-sang-JWT.md` (mã việc B/F/H/X/T lấy theo file đó).
 
-Ký hiệu: ✅ xong và đã chạy thử · ⬜ chưa làm.
+Ký hiệu trong bảng lịch sử: ✅ là trạng thái được báo cáo ở phiên bản trước; **không có nghĩa đã chạy lại trên Supabase trong lần bàn giao này**. Trạng thái mới được phân biệt ở mục 14.
 
 ## Mục lục
 
@@ -37,7 +37,8 @@ Ký hiệu: ✅ xong và đã chạy thử · ⬜ chưa làm.
 | Kiểm thử `T1–T13` | ✅ tự động (backend) · `T14` ⬜ (cần trang home đầy đủ) |
 | Frontend `F1–F7`, `X6` | **✅ xong** (mục 12) |
 | Frontend `F9`, `F12` | ✅ (`F12`: thanh trên có **Bảo mật** + Đăng xuất, mục 12.9) |
-| Frontend `F8`, `F10–F11`, `F13–F14` | ⬜ chưa làm (mục 9) |
+| Frontend `F8`, `F10–F11`, `F14` | Có mã triển khai; chưa nghiệm thu đầy đủ trên Supabase (mục 9, 14) |
+| Frontend `F13` | Có chức năng trang khách; cần kiểm thử hồi quy tìm kiếm / phân trang / ba chế độ (mục 9, 14) |
 | Trang home `H1` | ✅ |
 | Trang home `H2–H11` | ✅ xong (mục 12.9): thuyền = đăng xuất, nước tràn, hộp "Vai trò không hợp lệ", cô gái + vé hành khách + đổi ảnh, ảnh / âm thanh / CSS của Block 8 |
 
@@ -321,7 +322,7 @@ Block-9/
 | `npm run test:mfa` | MFA TOTP, recovery code, xác thực lại (83) |
 | `npm run test:avatar` | API ảnh đại diện (34) |
 | `npm run test:search` | Phân trang, search, filter, sort, fulltext, fuzzy (105) |
-| `npm run test:ui-auth` | Giao diện đăng nhập / đăng ký / quên mật khẩu / MFA bằng Chromium headless (51), cần server đang chạy, xem mục 12.8 |
+| `npm run test:ui-auth` | Giao diện đăng nhập / đăng ký / quên mật khẩu / MFA bằng Chromium headless (53), cần server đang chạy, xem mục 12.8 |
 
 ## 8. Kiểm thử
 
@@ -357,28 +358,31 @@ npm run test:auth && npm run test:register && npm run test:mfa && npm run test:a
 
 ## 9. Việc còn lại và giới hạn
 
-### Frontend (mục 5 và 6 của kế hoạch) — phần còn lại sau nửa đầu
+### Frontend (mục 5 và 6 của kế hoạch) — trạng thái mã nguồn và kiểm chứng còn thiếu
 
 | ID | Việc | Ghi chú |
 |----|------|---------|
-| F8 | Trang bảo mật tài khoản `/account/security`: bật MFA (QR, nhập mã, hiện mã khôi phục **một lần**), tắt MFA, tạo lại mã khôi phục (hỏi lại mật khẩu + mã) | API đã xong (mục 4.4). `enable` / `disable` trả **accessToken mới** → gọi `replaceToken()` trong `session.js` (đã có sẵn) |
-| F9 | Thêm route `/account/security` | 4 route còn lại (`/register`, `/forgot-password`, `/reset-password`, `/mfa`) và guard đã xong |
-| F10 | Khu quản trị theo role: viewer chỉ đọc (ẩn Thêm / Sửa / Xóa), editor không thấy Xóa, ẩn Sửa với món không thuộc mình hoặc đã published, form món của editor khóa ô đầu bếp | Chỉ là UX, server vẫn quyết định. **Hiện giờ mọi tài khoản đã đăng nhập đều thấy đủ nút**, bấm vào thì server trả 403 |
-| F11 | Ô `status` (draft / published) cho món: `resources.js`, `admin-form.js`, `list-config.js` | |
+| F8 | Trang bảo mật tài khoản `/account/security`: bật/tắt MFA, recovery code | **Có `frontend/js/pages/security.js` và route**; cần e2e cho toàn bộ vòng đời MFA, token mới, recovery code trên Supabase test |
+| F9 | Route `/account/security` và route xác thực | **Có khai báo trong `frontend/js/main.js`**; cần kiểm tra route guard khi chạy thật |
+| F10 | Khu quản trị theo role: viewer/editor/admin và ABAC trong UI | **Có `frontend/js/quyen.js` và các lời gọi `duocThem`, `duocSua`, `duocXoa` trong `listing.js`**; cần e2e xác nhận ẩn nút, khóa trường và server trả 403 đúng |
+| F11 | Ô `status` (draft / published) cho món | **Có mã xử lý**; cần test tạo/sửa, giới hạn editor và dữ liệu lưu DB |
 | F12 | Liên kết **Bảo mật** ở thanh trên khi đã đăng nhập (nút Đăng xuất đã có) | ✅ `utils.js` (`thanhTren`) và thanh trên của `khach.js` |
 | F13 | Chạy lại trang khách không token: tìm kiếm, phân trang, ba chế độ hiển thị, chi tiết món | Đã kiểm trên trình duyệt, không token: `/dishes`, `/khach` (có nút Đăng nhập, hàng chờ) và `/dishes/1` mở được, `/dishes` không gửi `Authorization`. **Chưa kiểm lại** tìm kiếm / phân trang / ba chế độ hiển thị (dây kéo) sau khi đổi frontend |
-| F14 | Rà `esc()` mọi dữ liệu người dùng khi render `innerHTML` (`listing.js` 6 chỗ, `khach.js` 1 chỗ) | Quan trọng hơn vì token nằm ở localStorage. Các trang mới viết (mục 12) đã dùng `esc()` cho mọi dữ liệu động |
+| F14 | Escape dữ liệu người dùng khi render HTML | **Đã thấy `esc()` trong các trang liên quan**; chưa có bằng chứng rà soát toàn bộ sink DOM và test XSS |
 | H2 | Thuyền = đăng xuất (lắc, tiếng nước, hộp xác nhận) | ✅ `pages/home.js` |
-| H3 | Hiệu ứng nước tràn trước khi sang `/login` | ✅ `effects.js` (`fx: { type: "nuoc" }`) |
+| H3 | Hiệu ứng nước sông tràn từ đáy lên (`fx: { type: "nuoc" }`): khi đăng xuất, khi chưa đăng nhập mà bấm nhà hàng, và khi bấm **Trang chủ** (`.dn-ve`) từ cảnh đêm của `/login`, `/register`, `/forgot-password`, `/reset-password`, `/mfa` (`chonFx` chọn nước khi link nằm trong `.dn`; ra phố từ trang khác vẫn là cành cây). Đợi animation `nuoc-len` thật chạy xong (tối đa 2 giây) rồi mới đổi màn hình; trong lúc nước dâng, body có lớp `dang-nuoc` để tạm dừng animation của cảnh đêm; `prefers-reduced-motion` thì bỏ hiệu ứng | ✅ `effects.js`, `style.css` (`.nuoc-tran`, `html[data-nuoc]`, `.dang-nuoc`) |
 | H4 | Hộp chọn vai: hộp "Vai trò không hợp lệ" đúng kiểu Block 8 | ✅ |
 | H5 | Cô gái áo dài + Vé hành khách (tên + avatar) | ✅ `pages/ve-hanh-khach.js` |
 | H7 | Chỉ còn `data-dn` / `data-tk` kiểu EJS | ✅ trang phố dùng `getMe()` |
-| H8–H11 | Phím mũi tên không dạo phố khi mở hộp; ảnh + âm thanh; CSS nút thuyền / vé / avatar / nước tràn; `giong()`, `nuoc`, `cuoi` trong `am-thanh.js` | ✅ (`giong()` copy cho đủ bộ, Block 8 cũng chưa gọi tới) |
+| H8 | Phím mũi tên không dạo phố khi đang mở hộp | ✅ `pages/home.js` |
+| H9 | Ảnh: `img/pho/{co-gai,bang-dang-nhap,bang-dang-xuat}.webp`, `audio/co-gai-cuoi-1..4.mp3` và bộ ảnh cảnh đêm của màn hình vào / ra tài khoản `img/dang-nhap/{nen-dem,den-1,den-2,den-3}.webp` (nền ban đêm + hoa đăng; dùng cùng `img/thuyen.webp`) | ✅ (`bang-dang-nhap/xuat.webp` chưa được code nào dùng) |
+| H10 | CSS: nút thuyền / vé / avatar / nước tràn, và khung cảnh đêm `.dn` (bầu trời sao, ánh trăng, sông, thuyền, hoa đăng, thẻ đăng nhập, ô CAPTCHA `.dn-cap`, ô mã 6 số `.dn-otp`, nút **Trang chủ** `.dn-ve`) | ✅ `css/style.css` (+ `style.min.css`, chạy `npm run build:css`) |
+| H11 | `giong()`, `nuoc`, `cuoi` trong `am-thanh.js` | ✅ (`giong()` copy cho đủ bộ, Block 8 cũng chưa gọi tới) |
 | H6 | Phần frontend: đổi / cắt ảnh đại diện (kéo, zoom, cắt vuông 512px) rồi `POST /api/auth/avatar` | ✅ `api.auth.uploadAvatar` + `ve-hanh-khach.js` |
 
 ### 12.9 Trang home hoàn chỉnh (H1–H11) và thanh trên (F12)
 
-- Thuyền / cô gái chỉ có khi `getMe()` trả về user; chưa đăng nhập thì thuyền đứng yên, không có cô gái, bấm nhà hàng → nước tràn → `/login`.
+- Thuyền / cô gái chỉ có khi `getMe()` trả về user; chưa đăng nhập thì thuyền đứng yên, không có cô gái, bấm nhà hàng → nước tràn → `/login`. Từ `/login` bấm **Trang chủ** thì nước tràn quay về `/` (kiểm bằng e2e nhóm A2).
 - Đăng xuất (thuyền hoặc nút ở thanh trên) gọi `api.auth.logout()`, xóa token rồi sang `/login` bằng nước tràn. Token **không** bị xóa khi chỉ ra phố (H1).
 - Vé hành khách: ảnh được cắt vuông 512px ở trình duyệt rồi gửi `multipart` (`avatar`) kèm Bearer; server kiểm tra lại nội dung ảnh. Block 9 chỉ lưu ảnh 512px (không có thumbnail 240px như Block 8).
 - Tệp mới / sửa: `pages/home.js`, `pages/ve-hanh-khach.js` (mới), `effects.js`, `api.js`, `utils.js`, `pages/khach.js`, `main.js`, `am-thanh.js`, `css/style.css` (+ `style.min.css`), `img/pho/{co-gai,bang-dang-nhap,bang-dang-xuat}.webp`, `audio/co-gai-cuoi-1..4.mp3`.
@@ -517,7 +521,9 @@ npm run db:migrate && npm run db:seed && npm run test:search
 | F12 (một phần) | Nút **Đăng xuất** ở thanh trên khi đã đăng nhập (ủy quyền sự kiện `[data-dang-xuat]`), và trên `/khach`; chưa có liên kết Bảo mật | 🟡 | `utils.js`, `main.js`, `pages/khach.js` |
 | H1 | Ra phố **không còn** gọi `api.logout()` | ✅ | `pages/home.js` |
 
-Dùng chung: `pages/auth-ui.js` (khung trang, ô nhập, hiện lỗi theo ô, đếm ngược, CAPTCHA, `safeNext`). CSS thêm ở cuối `style.css` (nhớ `npm run build:css`, đã build).
+Giao diện các trang vào / ra tài khoản là **cảnh ban đêm** (`.dn`, giống Block 8): thẻ ở giữa, tab Đăng nhập / Đăng ký, nút **Trang chủ** ở góc, ô nhập dạng `truongDem` (id `f-<tên trường>`, vd. `#f-email`, `#f-recoveryCode`), mã 6 số là 6 ô `.dn-otp`, CAPTCHA là `#captcha .dn-cap`.
+
+Dùng chung: `pages/auth-ui.js` (khung đêm `khungDem`, ô nhập `truongDem`, hiện lỗi theo ô, đếm ngược, CAPTCHA `ganCaptchaDem`, `safeNext`; `ganCaptcha` bản cũ không còn nơi nào gọi). CSS thêm ở cuối `style.css` (nhớ `npm run build:css`, đã build).
 
 ### 12.2 Luồng đăng nhập
 
@@ -535,7 +541,7 @@ Router: route có `auth:true` mà chưa đăng nhập → `/login?next=<đườn
 ### 12.3 Lưu token và rủi ro
 
 - Khóa `localStorage`: `cqa-token` (chỉ access token, sống `JWT_EXPIRES_IN`, mặc định 15 phút, không có refresh token).
-- **Rủi ro XSS**: script lạ chạy được trên trang thì đọc được token. Vì vậy các trang mới đều `esc()` mọi dữ liệu động; `F14` rà nốt `listing.js` / `khach.js`.
+- **Rủi ro XSS**: script lạ chạy được trên trang thì đọc được token. Vì vậy các trang mới đều `esc()` mọi dữ liệu động; `F14` đã có các chỗ gọi `esc()` trong `listing.js` / `khach.js`, nhưng vẫn cần rà soát và thử XSS toàn diện.
 - Challenge MFA và ticket đăng ký **không** nằm trong localStorage / sessionStorage: F5 giữa chừng là làm lại (đã kiểm: challenge không xuất hiện trong storage).
 - Đăng xuất = xóa token phía client (server chỉ trả ok); token đã cấp còn dùng được đến khi hết hạn nếu bị lấy trước đó.
 - Chưa đồng bộ đăng xuất giữa nhiều tab: tab kia chỉ biết khi request kế tiếp trả 401.
@@ -543,12 +549,12 @@ Router: route có `auth:true` mà chưa đăng nhập → `/login?next=<đườn
 ### 12.4 CAPTCHA
 
 - Có khóa: đặt trước khi tải `main.js` (ví dụ trong `frontend/index.html`): `<script>window.RECAPTCHA_SITE_KEY = "6Lc...";</script>`; cùng với `RECAPTCHA_SECRET_KEY` ở backend.
-- Không có khóa: hiện ô tick giả lập `Tôi không phải người máy (chế độ dev…)`, gửi `"dev-captcha"`. Backend dev bỏ qua kiểm tra; **backend production từ chối** nếu thiếu khóa nên production bắt buộc phải cấu hình cả hai.
+- Không có khóa: hiện ô tick giả lập `.dn-cap` ("Tôi không phải là người máy", bấm là xong sau khoảng 0,7 giây), gửi `"dev-captcha"`. Có khóa thì widget reCAPTCHA thật nằm trong `.dn-rc`. Backend dev bỏ qua kiểm tra; **backend production từ chối** nếu thiếu khóa nên production bắt buộc phải cấu hình cả hai.
 - Backend không có đường nào trả site key cho SPA (chưa đổi để không đụng hợp đồng đã chốt). Nếu muốn lấy từ server, thêm `recaptchaSiteKey` vào `/api/options` rồi đọc trong `auth-ui.js`.
 
 ### 12.5 Việc cần biết khi dùng giao diện
 
-- **Khu `/admin/*` mở cho mọi tài khoản đã đăng nhập** (cả viewer): lớp giao diện chưa ẩn nút theo role (F10), nhưng mọi thao tác ghi bị server chặn bằng 403 (đã kiểm: viewer xóa món → 403, token vẫn còn). Sau đăng nhập, viewer được đưa tới `/khach`, editor / admin tới `/admin/dishes`.
+- **Khu `/admin/*` cho phép tài khoản đã đăng nhập truy cập theo guard**; UI hiện có kiểm tra quyền qua `quyen.js` (F10), nhưng chưa chạy e2e xác nhận tất cả nút và hành động theo role. Backend vẫn phải kiểm tra quyền độc lập. Sau đăng nhập, viewer được đưa tới `/khach`, editor / admin tới `/admin/dishes`.
 - Mã TOTP vừa dùng ở bước bật MFA **không** dùng lại được để đăng nhập trong cùng bước 30 giây (thiết kế của backend); trang `/mfa` nhắc người dùng chờ mã mới.
 - Sau khi đổi mật khẩu thành công, người dùng phải đăng nhập lại (server không cấp token, không tắt MFA).
 
@@ -571,11 +577,12 @@ pip install playwright && playwright install chromium
 SERVER_LOG=/path/to/server.log SEED_PASSWORD=<mật khẩu mẫu> npm run test:ui-auth
 ```
 
-51 kiểm tra, đọc OTP / link đặt lại từ log server (`DEV_PRINT_MAIL=1`), tính mã TOTP bằng `src/utils/totp.js`:
+Bộ assertion trong script (chưa chạy lại trên Supabase online), đọc OTP / link đặt lại từ log server (`DEV_PRINT_MAIL=1`), tính mã TOTP bằng `src/utils/totp.js`:
 
 | Nhóm | Nội dung |
 |---|---|
 | A | Không token: `/dishes` xem được và không gửi `Authorization`; `/admin/chefs` → `/login?next=`; bấm nhà hàng → `/login` |
+| A2 | Bấm **Trang chủ** (`.dn-ve`) ở `/login`: nước tràn lên (có `.nuoc-tran` và lớp `dang-nuoc`) rồi sang `/`; nước rút hết, không kẹt lớp phủ / `data-nuoc` (2 kiểm tra) |
 | B | Sai mật khẩu ở lại trang, không có token; sai lần 3 hiện CAPTCHA, chưa tick thì bị chặn; thành công → token trong localStorage, `/api/chefs` có `Bearer`; đã đăng nhập mở `/login` thì chuyển đi; Đăng xuất xóa token |
 | C | Token rác: về `/login` kèm thông báo và token bị xóa; trang công khai vẫn xem được |
 | D | Viewer xóa món → 403, **vẫn còn token** |
@@ -585,9 +592,61 @@ SERVER_LOG=/path/to/server.log SEED_PASSWORD=<mật khẩu mẫu> npm run test:u
 | H | Khóa 429 hiện đếm ngược; `?next=//evil.com` bị bỏ; `?next=/admin/ingredients` được theo |
 | I | Không có lỗi JS / console error |
 
+Script chờ theo điều kiện (URL đổi, nút Đăng xuất xuất hiện) chứ không chờ cố định: đăng xuất có hiệu ứng nước nên mất khoảng 1,0–1,1 giây (đo trên Chromium headless).
+
 Lưu ý khi chạy: test **ghi dữ liệu thật** (tạo vài tài khoản `sv…@example.com`, đổi tạm mật khẩu `viewer@example.com` rồi ghi lại mật khẩu mẫu, bật rồi tắt MFA của editor) và bị rate limit theo IP của backend (30 lần đăng nhập / 15 phút) nên chạy liên tiếp nhiều lần sẽ vấp 429, khởi động lại server để xóa bộ đếm. Đã chạy trên Chromium headless; chưa thử Safari / Firefox / thiết bị cảm ứng.
 
 Ngoài script, đã kiểm tay bằng Playwright: trang phố khi đã đăng nhập vẫn giữ token (H1), hộp chọn vai báo "Vai trò không hợp lệ" cho viewer, `/khach` và `/dishes/1` mở được không token.
 
 **Chưa kiểm**: reCAPTCHA thật; gửi email thật; `T3` bằng cách đặt `JWT_EXPIRES_IN=5s` rồi chờ trên giao diện; `T4` khi chạy SPA ở origin khác (`localhost:5173`); tìm kiếm / phân trang / ba chế độ hiển thị của danh sách sau thay đổi (F13).
 
+
+
+## 13. Nghiệm thu 36 bước tích hợp với e2e và README
+
+- Chuẩn yêu cầu: `Ke-hoach-chuyen-Block-7-CSR-sang-JWT.md`.
+- Danh sách ca nghiệm thu: [`docs/BO-KIEM-36-BUOC.md`](docs/BO-KIEM-36-BUOC.md).
+- Bảng ánh xạ ca → kiểm thử tự động / thủ công: [`docs/MA-TRAN-36-E2E.csv`](docs/MA-TRAN-36-E2E.csv) và [`docs/HUONG-DAN-TICH-HOP-E2E.md`](docs/HUONG-DAN-TICH-HOP-E2E.md).
+- Script giao diện do người dùng cung cấp: `scripts/e2e/auth-ui-check.py` (giữ luồng A–I và kiểm tra nước tràn A2). Script không thay thế kiểm thử API RBAC/ABAC hoặc kiểm tra ảnh bằng mắt.
+- **Không có ca nào được xác nhận PASS trên Supabase online ở lần tích hợp này**; những con số PASS lịch sử trong README không phải kết quả chạy lại.
+- **Cảnh báo:** Script có thay đổi mật khẩu tài khoản `viewer@example.com`, bật/tắt MFA tài khoản `editor@example.com`, tạo tài khoản và có lệnh cập nhật DB trực tiếp. Chỉ chạy trên Supabase **project test riêng** với tài khoản mẫu, không chạy trên dữ liệu production.
+
+### Chạy kiểm tra trên máy có kết nối Supabase test
+
+```bash
+npm install
+# tạo .env từ .env.example và điền DATABASE_URL, JWT_SECRET, SEED_PASSWORD, ...
+npm run db:migrate
+npm run db:seed
+npm run db:seed:users
+python3 -m pip install playwright
+python3 -m playwright install chromium
+# terminal 1 (giữ log để e2e đọc OTP / reset link):
+DEV_PRINT_MAIL=1 npm start 2>&1 | tee server-e2e.log
+# terminal 2:
+SERVER_LOG=server-e2e.log SEED_PASSWORD=Passw0rd1 python3 scripts/e2e/auth-ui-check.py
+```
+
+Trên Windows PowerShell, dùng biến môi trường `$env:DEV_PRINT_MAIL="1"` và chuyển hướng log tương ứng. **Không commit** `.env`, log chứa OTP/reset link, ảnh chụp có token hoặc mật khẩu. Chạy thêm các lệnh `npm run test:auth`, `test:register`, `test:mfa`, `test:avatar`, `test:search` để bao phủ những ca API mà e2e UI chưa kiểm.
+
+
+## 14. Rà soát yêu cầu theo PDF kế hoạch và giới hạn nghiệm thu hiện tại
+
+Nguồn đối chiếu: **Kế hoạch chuyển Block 7 (CSR) sang JWT**, mục 4 (B1–B26), mục 5 (F1–F14), mục 6 (H1–H11), mục 7 (X1–X8), mục 8 (T1–T14). Bảng này phân biệt **có mã nguồn** với **đã được chứng minh chạy đúng**.
+
+| Nhóm | Mã nguồn / tài liệu | Bằng chứng còn thiếu |
+|---|---|---|
+| B1–B26 | Có module backend JWT, MFA, RBAC/ABAC, migration và các test API | Chạy lại toàn bộ trên Supabase **project test**, kiểm tra dữ liệu và lưu log đã che bí mật |
+| F1–F7 | Có các trang xác thực và `auth-ui-check.py` | Chạy e2e thật với backend/DB; kiểm tra OTP, reset, CAPTCHA, MFA |
+| F8–F9 | Có `pages/security.js` và route `/account/security` | E2E bật/tắt MFA, recovery, thay token, route guard |
+| F10–F11 | Có `quyen.js`, các kiểm tra quyền ở `listing.js`, mã trạng thái món | E2E 3 role, nút ẩn/hiện, món `draft/published`, thao tác bị chặn ở API |
+| F12 | Có nút Đăng xuất / Bảo mật trong giao diện | Kiểm tra liên kết, điều hướng và logout |
+| F13 | Có các trang danh sách, tìm kiếm, phân trang và chi tiết | Chạy lại trang khách không token, đủ ba chế độ hiển thị |
+| F14 | Có sử dụng `esc()` ở nhiều chỗ render | Rà toàn bộ `innerHTML` và thử payload XSS; chưa kết luận an toàn toàn diện |
+| H1–H11 | Có code home, nước tràn, thuyền, vé, avatar, CSS/ảnh/âm thanh | So sánh ảnh chụp Block 8 và Block 9 khi chạy; test avatar với **Supabase Storage thật** |
+| X1–X8 | README ghi đã dọn các phần SSR/cookie và tài liệu cũ | Kiểm tra lại tham chiếu và regression khi chạy |
+| T1–T14 / 36 bước | Có các script và ma trận tại `docs/` | **Chưa có kết quả 36/36 trên Supabase online**, chưa có bộ ảnh Network, Local Storage, request và DB tương ứng |
+
+**Những dịch vụ chưa được chứng minh bằng test tích hợp thật:** Supabase PostgreSQL online, Supabase Storage upload avatar, SMTP/Resend và reCAPTCHA production. Các kết quả PASS lịch sử trong README không phải kết quả của lần rà soát này. Không chạy script e2e có tác động dữ liệu trên project production.
+
+**Checklist trước khi nộp:** dùng Supabase project test; chạy migrate/seed; chạy `npm run test:auth`, `test:register`, `test:mfa`, `test:avatar`, `test:search`; chạy `auth-ui-check.py`; kiểm tra F8/F10/F11/F13/H6; đối chiếu giao diện Block 8; lưu bằng chứng đã che token/OTP/secret; cập nhật `docs/BO-KIEM-36-BUOC.md` theo kết quả thực tế.

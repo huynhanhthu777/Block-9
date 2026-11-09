@@ -38,7 +38,7 @@ def log_tail(since):
 def esc_url(p): return p
 
 with sync_playwright() as pw:
-    br = pw.chromium.launch()
+    br = pw.chromium.launch(**({"executable_path": os.environ["CHROMIUM_PATH"]} if os.environ.get("CHROMIUM_PATH") else {}))
     ctx = br.new_context()
     pg = ctx.new_page()
     errors = []
@@ -53,6 +53,14 @@ with sync_playwright() as pw:
     def otp_fill(code):
         pg.evaluate("document.querySelectorAll('.dn-otp input').forEach(i => i.value = '')")
         pg.locator(".dn-otp input").first.focus(); pg.keyboard.type(code)
+    def dang_xuat():
+        # bấm Đăng xuất rồi CHỜ sang /login (nước tràn 0,62 giây + lời gọi logout > 1 giây): chờ cố định dễ trượt, và goto sớm thì token chưa kịp xóa
+        try: pg.wait_for_selector("[data-dang-xuat]", timeout=2000)
+        except Exception: return
+        pg.click("[data-dang-xuat]")
+        try: pg.wait_for_url("**/login*", timeout=8000)
+        except Exception: pass
+        pg.wait_for_timeout(300)
     def login(email, pw_=PW):
         goto("/login"); pg.fill("#f-email", email); pg.fill("#f-password", pw_); pg.click("#nut"); pg.wait_for_timeout(2500)
 
@@ -67,6 +75,21 @@ with sync_playwright() as pw:
     check("chưa đăng nhập, bấm nhà hàng -> /login", pg.url.endswith("/login"), pg.url)
     check("không còn hộp 'chọn vai' ở trang đăng nhập", pg.locator("input[name=role]").count() == 0)
 
+    print("T-A2. Nước tràn khi bấm 'Trang chủ' ở cảnh đêm")
+    goto("/login")
+    # SPA không tải lại trang nên biến này sống qua lần chuyển cảnh: ghi lại xem lớp nước (.nuoc-tran) và cờ .dang-nuoc có từng xuất hiện không
+    pg.evaluate("""() => { window.__nuoc = { tran: false, dang: false };
+      new MutationObserver(() => {
+        if (document.querySelector('.nuoc-tran')) window.__nuoc.tran = true;
+        if (document.body.classList.contains('dang-nuoc')) window.__nuoc.dang = true;
+      }).observe(document.documentElement, { childList: true, subtree: true, attributes: true, attributeFilter: ['class', 'data-nuoc'] }); }""")
+    pg.click(".dn-ve")
+    pg.wait_for_url(BASE + "/", timeout=5000); pg.wait_for_timeout(1800)
+    nuoc = pg.evaluate("window.__nuoc")
+    check("bấm 'Trang chủ' ở /login: nước tràn lên (.nuoc-tran, .dang-nuoc) rồi sang /", pg.url == BASE + "/" and nuoc["tran"] and nuoc["dang"], f"{pg.url} {nuoc}")
+    check("nước rút hết: không còn lớp phủ, không kẹt .dang-nuoc / data-nuoc",
+          pg.locator(".nuoc-tran").count() == 0 and not pg.evaluate("document.body.classList.contains('dang-nuoc') || document.documentElement.hasAttribute('data-nuoc')"))
+
     print("T-B. Đăng nhập sai / CAPTCHA / thành công")
     login("viewer@example.com", "SaiMatKhau1")
     check("sai mật khẩu: ở lại /login, hiện lỗi", "/login" in pg.url and pg.locator("#loi").is_visible())
@@ -77,7 +100,9 @@ with sync_playwright() as pw:
     check("sai lần 3: hiện CAPTCHA", pg.locator("#captcha").is_visible())
     pg.fill("#f-password", PW); pg.click("#nut"); pg.wait_for_timeout(700)
     check("đúng mật khẩu nhưng chưa tick CAPTCHA: bị chặn phía client", "/login" in pg.url and token() is None)
-    tick_cap(); pg.click("#nut"); pg.wait_for_timeout(1500)
+    tick_cap(); pg.click("#nut")
+    try: pg.wait_for_url("**/khach", timeout=8000)   # bcrypt + hiệu ứng cành cây có thể lâu hơn 1,5 giây trên máy chậm
+    except Exception: pass
     check("tick CAPTCHA + đúng mật khẩu -> /khach", pg.url.endswith("/khach"), pg.url)
     t = token()
     check("accessToken nằm trong localStorage (cqa-token)", bool(t) and t.count(".") == 2)
@@ -88,7 +113,7 @@ with sync_playwright() as pw:
     goto("/login")
     check("đã đăng nhập mà mở /login -> chuyển đi, không hiện form", "/login" not in pg.url, pg.url)
     pg.goto(BASE + "/dishes"); pg.wait_for_selector("[data-dang-xuat]")
-    pg.click("[data-dang-xuat]"); pg.wait_for_timeout(900)
+    dang_xuat()
     check("Đăng xuất -> /login, token bị xóa", "/login" in pg.url and token() is None)
 
     print("T-C. Token hỏng / hết hạn / sai chữ ký")
@@ -110,7 +135,7 @@ with sync_playwright() as pw:
     check("viewer xóa món: bị chặn (403), vẫn còn token", token() is not None)
     api_s, api_b = api("DELETE", "/dishes/1", token=token())
     check("API trả 403 FORBIDDEN cho viewer", api_s == 403 and api_b["error"]["code"] == "FORBIDDEN")
-    pg.click("[data-dang-xuat]") if pg.locator("[data-dang-xuat]").count() else None
+    dang_xuat()
 
     print("T-E. Quên / đặt lại mật khẩu")
     mail = f"reset{uuid.uuid4().hex[:6]}@example.com"
@@ -136,7 +161,7 @@ with sync_playwright() as pw:
     check("mở lại link cũ: báo không dùng được", "không dùng được" in pg.locator(".dn-tieude").inner_text().lower())
     login("viewer@example.com", "Moi0Matkhau1")
     check("đăng nhập bằng mật khẩu mới", pg.url.endswith("/khach"), pg.url)
-    pg.click("[data-dang-xuat]") if pg.locator("[data-dang-xuat]").count() else None
+    dang_xuat()
     # trả lại mật khẩu mẫu cho các test sau (forgot-password có hồi chờ 60s nên không gọi lại được ngay -> ghi thẳng DB)
     subprocess.check_call(["node", "-e", f"""require('dotenv').config();const {{User}}=require('./src/models');const b=require('bcryptjs');
       User.update({{passwordHash:b.hashSync('{PW}',12)}},{{where:{{email:'viewer@example.com'}}}}).then(()=>process.exit(0))"""], cwd=ROOT)
@@ -161,7 +186,7 @@ with sync_playwright() as pw:
     login(new, "Thu0Matkhau1")
     check("đăng nhập tài khoản mới -> /khach (role viewer)", pg.url.endswith("/khach"), pg.url)
     check("role của tài khoản mới là viewer", api("GET", "/auth/me", token=token())[1]["data"]["role"] == "viewer")
-    pg.click("[data-dang-xuat]") if pg.locator("[data-dang-xuat]").count() else None
+    dang_xuat()
 
     print("T-G. MFA")
     s, d = api("POST", "/auth/login", {"email": "editor@example.com", "password": PW}); tk = d["data"]["accessToken"]
@@ -174,11 +199,11 @@ with sync_playwright() as pw:
     check("mã sai: báo lỗi, vẫn ở /mfa, chưa có token", pg.locator("#loi").is_visible() and pg.url.endswith("/mfa") and token() is None)
     otp_fill(totp(secret, 1)); pg.click("#nut"); pg.wait_for_timeout(2500)
     check("mã đúng -> vào khu quản trị với token", "/admin/dishes" in pg.url and token() is not None, pg.url)
-    pg.click("[data-dang-xuat]"); pg.wait_for_timeout(1500)
+    dang_xuat()
     login("editor@example.com")
-    pg.click("#doi"); pg.fill("#f-rec", rec[0]); pg.click("#nut"); pg.wait_for_timeout(2500)
+    pg.click("#doi"); pg.fill("#f-recoveryCode", rec[0]); pg.click("#nut"); pg.wait_for_timeout(2500)
     check("mã khôi phục -> đăng nhập được", "/admin/dishes" in pg.url and token() is not None, pg.url)
-    pg.click("[data-dang-xuat]"); pg.wait_for_timeout(1500)
+    dang_xuat()
     login("editor@example.com")
     pg.reload(); pg.wait_for_timeout(800)
     check("F5 ở /mfa mất challenge (chỉ trong bộ nhớ) -> /login", "/login" in pg.url, pg.url)
@@ -193,10 +218,11 @@ with sync_playwright() as pw:
     goto("/login"); pg.fill("#f-email", "khoa@example.com"); pg.fill("#f-password", "Sai0Matkhau")
     if pg.locator("#captcha").is_visible(): tick_cap()
     pg.click("#nut"); pg.wait_for_timeout(900)
-    check("bị khóa: nút đếm ngược, bị vô hiệu", pg.locator("#nut").is_disabled() and "Thử lại sau" in pg.locator("#nut").inner_text())
+    check("bị khóa: nút đếm ngược, bị vô hiệu", pg.locator("#nut").is_disabled() and "thử lại sau" in pg.locator("#nut").inner_text().lower())
     goto("/login?next=//evil.com"); pg.fill("#f-email", "admin@example.com"); pg.fill("#f-password", PW); pg.click("#nut"); pg.wait_for_timeout(1500)
+    pg.wait_for_selector("[data-dang-xuat]", timeout=8000)   # chờ trang sau đăng nhập dựng xong (bcrypt + chuyển trang có thể > 1,5 giây)
     check("next=//evil.com bị bỏ qua, ở lại cùng origin", pg.url.startswith(BASE), pg.url)
-    pg.click("[data-dang-xuat]") if pg.locator("[data-dang-xuat]").count() else None
+    dang_xuat()
     goto("/login?next=/admin/ingredients"); pg.fill("#f-email", "admin@example.com"); pg.fill("#f-password", PW)
     if pg.locator("#captcha").is_visible(): tick_cap()
     pg.click("#nut"); pg.wait_for_timeout(1500)

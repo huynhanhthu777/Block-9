@@ -1,3 +1,4 @@
+const fs = require("fs");
 const path = require("path");
 const express = require("express");
 const compression = require("compression");
@@ -33,10 +34,21 @@ app.use(
 
 // Routing phía client: mọi đường dẫn GET còn lại (vd /admin/dishes/3/edit khi F5) đều trả index.html.
 // Đường dẫn có đuôi file (.js, .css, .png...) mà không tồn tại thì trả 404 thật, không trả HTML.
+// Server chèn RECAPTCHA_SITE_KEY (khóa CÔNG KHAI) vào index.html để frontend vẽ reCAPTCHA thật; không đặt khóa = ô tick giả lập (chỉ dev).
+const INDEX_FILE = path.join(FRONT, "index.html");
+function renderIndex() {
+  const key = String(process.env.RECAPTCHA_SITE_KEY || "").trim();
+  const tag = key ? `<script>window.RECAPTCHA_SITE_KEY=${JSON.stringify(key).replace(/</g, "\\u003c")};</script>` : "";
+  return fs.readFileSync(INDEX_FILE, "utf8").replace("<!--RECAPTCHA_CONFIG-->", tag);
+}
 app.get("*", (req, res, next) => {
   if (path.extname(req.path)) return next();
   res.setHeader("Cache-Control", "no-cache");
-  res.sendFile(path.join(FRONT, "index.html"));
+  try {
+    res.type("html").send(renderIndex());
+  } catch (err) {
+    next(err);
+  }
 });
 
 app.use((req, res) => res.status(404).type("text").send("Not found"));
